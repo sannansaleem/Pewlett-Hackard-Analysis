@@ -104,38 +104,81 @@ To retrieve this data, three tables were merge together: employees, titles and d
 
 Full reports in CSV files [here](exports/) and SQL Queries [here](Employee_Database_Challenge.sql) 
 
+
 ## Summary
-
-As the company is preparing for the upcoming "silver tsunami" a good planning is essential, especially when such a large number of the employees is involved. Reports above give a good insight about the number of the employees that are about to retire and hold specific title. However, I believe that additional break down per department will be beneficial for the company. In this case headquarters can see what to expect in each department separately. In order to retrieve department name information, I merged additional table `departments` into existing table `retirement_titles` with the `inner join`. After removing the duplicates, with `DISTINCT ON` command, the table was ready to be used for additional queries.
-<p align="center">  
-<img src="Graphics/Extra_TitlesAndDepartment.PNG" width="60%" height="60%">
-</p>
-<p align="center">  
-<i>Figure 6: Table with retirement-ready employee’s data with added department name</i>
-</p>
-
-:exclamation: Please see full report [here](Data/) - **see 05_Extra_unique_titles_department.csv** and SQL Queries [here](Queries/Employee_Database_challenge.sql) - **see Deliverable 3**.
-
 ***How many roles will need to be filled as the "silver tsunami" begins to make an impact?***<br>
-The table **retirement titles** contains all the information about the employees that are about to retire in the next four years. To get the number of positions that will be open in next four years I ran additional query that breaks down how many staff will retire per department. Since every department will be affected in some way this query gives more precise numbers what each department can expect and how many roles will need to be filled.
 
-<p align="center">  
-<img src="Graphics/Extra_RolesToFill.PNG" width="40%" height="40%">
-</p>
-<p align="center">  
-<i>Figure 7: Sum of retirement-ready employees group by title and department.</i> 
-</p>
+As the company prepares for the silver tsunami, the plan would be to prepare new hires for 13,505 employees i.e. 
 
-:exclamation: Please see full report [here](Data/06_Extra_roles_to_fill.csv) and SQL Queries [here](Queries/Employee_Database_challenge.sql) - **see Deliverable 3**.
+1.the number of people that are currently working at the company
+
+2. have been there since 1985 to 1988
+      
+3. their birth date is between 1962 and 1965 to be eligible to leave work
+  
+
+and to offer these people a path into mentorship program so that they may keep mentoring new employees. However, shpuld they decide to part ways, Pewlett-Hackard should be ready to hire the afformentioned number of employees.
+
+```
+SELECT DISTINCT ON (emp_no) e.emp_no, 
+                            e.first_name, 
+                            e.last_name, 
+                            e.birth_date,
+                            de.from_date,
+                            de.to_date, 
+                            t.title
+INTO employees_leaving
+FROM employees as e
+JOIN dept_emp as de
+ON (e.emp_no = de.emp_no)
+JOIN titles as t
+ON (e.emp_no = t.emp_no)
+WHERE (de.to_date = '9999-01-01') AND (e.birth_date BETWEEN '1962-01-01' AND '1965-12-31')
+	AND (de.from_date BETWEEN '1985-01-01' AND '1988-12-31')
+ORDER BY e.emp_no
+```
+
+To download: [employees_leaving.csv](exports/employees_leaving.csv)
 
 ***Are there enough qualified, retirement-ready employees in the departments to mentor the next generation of Pewlett-Hackard employees?***<br>
-To ensure that are enough qualified staff for training at Pewlett-Hackard I ran a query with additional filter, that returns only employees on higher positions, assuming that those are qualified as mentors. With the command ` WHERE ut.title IN ('Senior Engineer', 'Senior Staff', 'Technique Leader', 'Manager') ` the results include only staff on higher positions. From the table we can see how many qualified employees are in each department to train next generation. 
 
-<p align="center">  
-<img src="Graphics/Extra_QualifiedStaff.PNG" width="40%" height="40%">
-</p>
-<p align="center">  
-<i>Figure 8: Sum of qualified, retirement-ready employees group by title and department</i>
+Now, to check if there are enough potential mentors in all of the departments, we recreated the employees_leaving table to add the department they belong to. 
+
+```
+SELECT DISTINCT ON (emp_no) e.emp_no, 
+                            d.dept_name, 
+                            e.first_name, 
+                            e.last_name, 
+                            e.birth_date, 
+                            de.from_date, 
+                            de.to_date, 
+                            t.title
+INTO employees_leaving_by_dept
+FROM employees as e
+JOIN dept_emp as de
+ON (e.emp_no = de.emp_no)
+JOIN titles as t
+ON (e.emp_no = t.emp_no)
+LEFT JOIN departments as d
+ON (de.dept_no = d.dept_no)
+WHERE (de.to_date = '9999-01-01') AND (e.birth_date BETWEEN '1962-01-01' AND '1965-12-31')
+	AND (de.from_date BETWEEN '1985-01-01' AND '1988-12-31')
+ORDER BY e.emp_no
+
+```
+
+To download: [employees_leaving_by_dept.csv](exports/employees_leaving_by_dept1.csv)
+
+and then grouped the leaving employees table by department in order to count how many of them were in each department to answer the question "Are there enough qualified, retirement-ready employees in the departments to mentor the next generation of Pewlett-Hackard employees?" data can be seen below:
+
+```
+SELECT COUNT(first_name) "Count", dept_name
+FROM employees_leaving_by_dept
+GROUP BY dept_name
+ORDER BY "Count" desc;
+```
+<p align="center">
+<img src="resources/img/employees_leaving_by_dept.png" width="50%" height="50%">
 </p>
 
-:exclamation: Please see full report [here](Data/07_Extra_qualified_staff.csv) and SQL Queries [here](Queries/Employee_Database_challenge.sql) - **see Deliverable 3**.
+
